@@ -4,6 +4,8 @@ export interface GemOption {
   level: number;  
 }
 
+export type PlayerRole = 'dealer' | 'support';
+
 export interface ArkGridGem {
   id: string;
   category?: '질서' | '혼돈'; // 질서 (붉은색) or 혼돈 (푸른색)
@@ -22,9 +24,9 @@ export interface SingleOptimization {
     totalPoints: number;
     totalWill: number;
     willLimit: number;
-    scalingGain: number;      // 포인트 스케일링으로 얻는 수치
-    combatOptionGain: number; // 공격력/보피/추피 계수 합산 수치
-    totalPowerGain: number;   // 최종 합산 수치
+    scalingGain: number;      
+    combatOptionGain: number; 
+    totalPowerGain: number;   
     effectTotals: Record<string, number>;
   };
   reasoning: string;
@@ -32,7 +34,7 @@ export interface SingleOptimization {
 
 export interface MultiOptimizationResult {
   results: Record<string, SingleOptimization>;
-  totalExpectedGain: number; // 6개 코어 전체 합산 기대 수치
+  totalExpectedGain: number; 
 }
 
 export interface AnalysisResponse {
