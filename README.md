@@ -15,6 +15,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1loDwOk1y_IEEMupve-aEg2
 
 1. Install dependencies:
    `npm install`
+   `npm install -D tailwindcss postcss autoprefixer @tailwindcss/postcss`
 2. Set the API keys in [.env.local](.env.local):
    - `GEMINI_API_KEY`: Your Gemini API key
    - `LOST_ARK_API_KEY`: Your Lost Ark API key (from developer portal)
