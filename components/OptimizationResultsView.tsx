@@ -23,6 +23,7 @@ interface OptimizationResultsViewProps {
   intrinsicGain: number;
   realEfficiencyGain: number;
   coreConfigs: Record<CoreType, CoreGrade>;
+  currentCombatPower: string;
 }
 
 const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
@@ -34,7 +35,8 @@ const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
   efficiencyBaselines,
   intrinsicGain,
   realEfficiencyGain,
-  coreConfigs
+  coreConfigs,
+  currentCombatPower
 }) => {
   const [activeTab, setActiveTab] = useState<CoreType>('질서의 해');
 
@@ -42,10 +44,11 @@ const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
     if (type.includes('해')) return <Sun className="w-5 h-5 text-orange-400" />;
     if (type.includes('달')) return <Moon className="w-5 h-5 text-indigo-400" />;
     return <Star className="w-5 h-5 text-yellow-300" />;
-  };
+  };  
 
   const activeGradeLimits = GRADE_OPTIONS.find(o => o.value === coreConfigs[activeTab]);
-
+  
+  
   return (
     <div className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-[40px] shadow-2xl border-l-4 border-l-indigo-500">
@@ -63,6 +66,14 @@ const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
             <span className={`text-4xl font-black ${optMode === 'intrinsic' ? 'text-slate-300' : 'text-emerald-400'}`}>
               +{optMode === 'intrinsic' ? intrinsicGain.toFixed(4) : realEfficiencyGain.toFixed(4)}%
             </span>
+            <div className="mt-2">
+              <span className="text-[10px] font-black text-slate-500 uppercase block mb-1">
+                예상 전투력
+              </span>
+              <span className="text-2xl font-black text-indigo-400">
+                {(parseFloat(currentCombatPower.replace(/,/g, '')) * (1 + (optMode === 'intrinsic' ? intrinsicGain : realEfficiencyGain) / 100)).toFixed(2).toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
         
@@ -78,8 +89,8 @@ const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
                 <span className="text-[10px] font-bold text-slate-500 uppercase truncate mb-1">{eff}</span>
                 <span className={`text-sm font-black ${totalLevel > 0 ? 'text-emerald-400' : 'text-slate-700'}`}>Lv.{totalLevel}</span>
                 <div className="flex flex-col mt-2 pt-2 border-t border-slate-800/50">
-                  <span className="text-[9px] font-bold text-slate-600">젬 효과: +{(gemBonus * 100).toFixed(2)}%</span>
-                  <span className="text-[9px] font-black text-indigo-400">실 효율: +{efficiency.toFixed(4)}%</span>
+                  <span className="text-[11px] font-bold text-slate-600">젬 효과: +{(gemBonus * 100).toFixed(2)}%</span>
+                  <span className="text-[12px] font-black text-indigo-400">실 효율: +{efficiency.toFixed(4)}%</span>
                 </div>
               </div>
             );
@@ -87,7 +98,7 @@ const OptimizationResultsView: React.FC<OptimizationResultsViewProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-1 p-1.5 bg-slate-950/60 rounded-[28px] border border-slate-800 overflow-x-auto no-scrollbar">
+      <div className="flex flex-wrap gap-1 p-1.5 bg-slate-950/60 rounded-[28px] border border-slate-800 overflow-x-auto no-scrollbar" style={{ "justify-content": "space-evenly" }}>
         {CORE_TYPES.map(type => (
           <button 
             key={type} 

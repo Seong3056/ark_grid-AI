@@ -1,12 +1,21 @@
 
 import { ArkGridGem, MultiOptimizationResult, CoreGrade, CoreType, SingleOptimization, PlayerRole, OptimizationMode } from "../types";
 
-const SCALING_TABLE: Record<string, Record<number, number>> = {
+const DEALER_SCALING_TABLE: Record<string, Record<number, number>> = {
   "질서의 해": { 10: 1.5, 14: 4.0, 17: 7.5, 18: 7.67, 19: 7.83, 20: 8.0 },
   "질서의 달": { 10: 1.5, 14: 4.0, 17: 7.5, 18: 7.67, 19: 7.83, 20: 8.0 },
   "질서의 별": { 10: 1.0, 14: 2.5, 17: 4.5, 18: 4.67, 19: 4.83, 20: 5.0 },
   "혼돈의 해": { 10: 0.5, 14: 1.0, 17: 2.5, 18: 2.67, 19: 2.83, 20: 3.0 },
   "혼돈의 달": { 10: 0.5, 14: 1.0, 17: 2.5, 18: 2.67, 19: 2.83, 20: 3.0 },
+  "혼돈의 별": { 10: 0.5, 14: 1.0, 17: 2.5, 18: 2.67, 19: 2.83, 20: 3.0 }
+};
+
+const SUPPORT_SCALING_TABLE: Record<string, Record<number, number>> = {
+  "질서의 해": { 10: 1.2, 14: 1.2, 17: 7.8, 18: 7.98, 19: 8.1, 20: 8.22 },
+  "질서의 달": { 10: 1.2, 14: 1.2, 17: 7.8, 18: 7.98, 19: 8.1, 20: 8.22 },
+  "질서의 별": { 10: 0, 14: 0.6, 17: 2.1, 18: 2.2, 19: 2.3, 20: 2.4 },
+  "혼돈의 해": { 10: 0.6, 14: 0.9521, 17: 2.969, 18: 3.071, 19: 3.173, 20: 3.275 },
+  "혼돈의 달": { 10: 0.1, 14: 0.82072, 17: 2.46648, 18: 2.7072, 19: 2.94792, 20: 3.18864 },
   "혼돈의 별": { 10: 0.5, 14: 1.0, 17: 2.5, 18: 2.67, 19: 2.83, 20: 3.0 }
 };
 
@@ -36,15 +45,17 @@ const GEM_COEFFICIENTS: Record<string, number> = {
   '추가 피해': 0.000807692307692308,
   '보스 피해': 0.00083334,
   '낙인력': 0.0005,
-  '아군 공격 강화': 0.0005,
-  '아군 피해 강화': 0.0005
+  '아군 공격 강화': 0.13,
+  '아군 피해 강화': 0.0525
 };
 
 const DEALER_EFFECTS = ['공격력', '보스 피해', '추가 피해'];
 const SUPPORT_EFFECTS = ['낙인력', '아군 공격 강화', '아군 피해 강화'];
 
-function getScalingGain(type: CoreType, totalPoints: number): number {
-  const table = SCALING_TABLE[type];
+function getScalingGain(type: CoreType, totalPoints: number, role: PlayerRole): number {
+
+  const table = role === 'dealer' ? DEALER_SCALING_TABLE[type] : SUPPORT_SCALING_TABLE[type];
+  console.log('getScalingGain', role, table);
   const thresholds = Object.keys(table).map(Number).sort((a, b) => b - a);
   for (const t of thresholds) {
     if (totalPoints >= t) return table[t];
@@ -64,7 +75,9 @@ function findBestCombination(
   targetPoint: number,
   coreType: CoreType, 
   relevantEffects: string[], 
-  baselines: Record<string, number>
+  baselines: Record<string, number>,
+  role: PlayerRole,
+  grade: CoreGrade
 ): ArkGridGem[] {
   let bestTargetCombo: ArkGridGem[] = [];
   let bestTargetCombatScore = -1;
@@ -73,7 +86,7 @@ function findBestCombination(
   let maxFallbackPoints = -1;
   let maxFallbackCombatScore = -1;
 
-  const n = Math.min(candidates.length, 30);
+  const n = Math.min(candidates.length, 45);
   
   const search = (startIndex: number, currentCombo: ArkGridGem[]) => {
     if (currentCombo.length > 0 && currentCombo.length <= 4) {
@@ -96,8 +109,8 @@ function findBestCombination(
         });
 
         const effectivePoints = Math.min(totalPoints, pointLimit);
-        const scalingFactor = 1 + (getScalingGain(coreType, effectivePoints) / 100);
-        const totalScore = scalingFactor * combatMult;
+        const scalingFactor = 1 + (getScalingGain(coreType, effectivePoints, role) / 100);
+        const totalScore = scalingFactor * combatMult * Math.pow(totalWill / willLimit, 0.5);
 
         if (totalPoints >= targetPoint) {
           if (totalScore > bestTargetCombatScore) {
@@ -125,7 +138,7 @@ function findBestCombination(
   };
 
   search(0, []);
-  return bestTargetCombo.length > 0 ? bestTargetCombo : bestFallbackCombo;
+  return grade === 'Legend' ? bestTargetCombo : (bestTargetCombo.length > 0 ? bestTargetCombo : bestFallbackCombo);
 }
 
 export const runLocalOptimization = (
@@ -155,8 +168,9 @@ export const runLocalOptimization = (
   const availableGems = [...processedGems]
     .filter(gem => gem.will < 6)
     .sort((a, b) => {
-      if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency;
+      // 17포인트(유물/고대 목표) 달성을 위해 포인트 높은 순으로 우선 정렬하여 큰 젬부터 배치 시도
       if (b.point !== a.point) return b.point - a.point;
+      if (b.efficiency !== a.efficiency) return b.efficiency - a.efficiency;
       return b.optionValue - a.optionValue;
     });
 
@@ -186,7 +200,7 @@ export const runLocalOptimization = (
       return;
     }
 
-    const bestCombination = findBestCombination(candidates, willLimit, pointLimit, targetPoint, coreType, relevantEffects, baselines);
+    const bestCombination = findBestCombination(candidates, willLimit, pointLimit, targetPoint, coreType, relevantEffects, baselines, role, grade);
 
     if (bestCombination.length > 0) {
       bestCombination.forEach(g => usedGemIds.add(g.id));
@@ -194,7 +208,7 @@ export const runLocalOptimization = (
       const totalWill = bestCombination.reduce((sum, g) => sum + g.will, 0);
       
       const effectivePoints = Math.min(totalPoints, pointLimit);
-      const scaling = getScalingGain(coreType, effectivePoints);
+      const scaling = getScalingGain(coreType, effectivePoints, role);
       
       const effectTotals: Record<string, number> = {};
       bestCombination.forEach(g => {

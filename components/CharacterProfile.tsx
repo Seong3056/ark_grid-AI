@@ -9,7 +9,7 @@ interface CharacterProfileProps {
   setNickname: (val: string) => void;
   role: PlayerRole;
   setRole: (role: PlayerRole) => void;
-  charStats: CharStats | null;
+  charStats: (CharStats & { breakdown: CharStats['breakdown'] }) | null; // Updated line
   loading: boolean;
   onSearch: () => void;
 }
@@ -67,49 +67,61 @@ const CharacterProfile: React.FC<CharacterProfileProps> = ({
 
         <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800/50 min-h-[100px] flex flex-col justify-center">
           {charStats ? (
-            <div className="grid grid-cols-3 gap-2">
-              {role === 'dealer' ? (
-                <>
-                  <div className="text-center">
-                    <span className="block text-[10px] font-bold text-slate-500 uppercase mb-1">전투력</span>
-                    <span className="text-base font-black text-indigo-400">{charStats.combatPower}</span>
-                  </div>
-                  <StatWithTooltip 
-                    label="공격력%" 
-                    value={charStats.attackPower} 
-                    sources={charStats.breakdown.attackPower} 
-                    colorClass="text-emerald-400" 
-                  />
-                  <StatWithTooltip 
-                    label="추가 피해" 
-                    value={charStats.additionalDamage} 
-                    sources={charStats.breakdown.additionalDamage} 
-                    colorClass="text-orange-400" 
-                  />
-                </>
-              ) : (
-                <>
-                  <StatWithTooltip 
-                    label="낙인력" 
-                    value={charStats.branding} 
-                    sources={charStats.breakdown.branding} 
-                    colorClass="text-emerald-400" 
-                  />
-                  <StatWithTooltip 
-                    label="공격강화" 
-                    value={charStats.atkBuff} 
-                    sources={charStats.breakdown.atkBuff} 
-                    colorClass="text-blue-400" 
-                  />
-                  <StatWithTooltip 
-                    label="피해강화" 
-                    value={charStats.dmgBuff} 
-                    sources={charStats.breakdown.dmgBuff} 
-                    colorClass="text-purple-400" 
-                  />
-                </>
-              )}
+            <div className="space-y-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400">전투력 :</span>
+              <span className="font-black text-white">{charStats.combatPower}</span>
             </div>
+            <StatWithTooltip 
+              label="공격력 :" 
+              value={charStats.attackPower} 
+              sources={charStats.breakdown.attackPower} 
+            />
+            <StatWithTooltip 
+              label="무기 공격력 :" 
+              value={charStats.weaponAtkPower} 
+              sources={charStats.breakdown.weaponAtkPower} 
+            />
+            <StatWithTooltip 
+              label="추가피해:" 
+              value={charStats.additionalDamage} 
+              sources={charStats.breakdown.additionalDamage} 
+            />
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400">치명타 적중률:</span>
+              <span className="font-black text-white">{charStats.critRate}</span>
+            </div>
+            <div className="text-right text-[10px] text-slate-500/80 -mt-1">
+              (치명스탯+아크패시브 치명타 적중률+각인(아드레날린, 정밀단도)+반지 연마효과, 팔찌 효과)
+            </div>
+            <StatWithTooltip 
+              label="낙인력 :" 
+              value={charStats.branding} 
+              sources={charStats.breakdown.branding} 
+            />
+            <StatWithTooltip 
+              label="아군 공격 강화 :" 
+              value={charStats.atkBuff} 
+              sources={charStats.breakdown.atkBuff} 
+            />
+            <StatWithTooltip 
+              label="아군 피해 강화 :" 
+              value={charStats.dmgBuff} 
+              sources={charStats.breakdown.dmgBuff} 
+            />
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400">치명타 피해량(합연산):</span>
+              <span className="font-black text-white"></span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400">치명타 적중시 피해량(곱연산):</span>
+              <span className="font-black text-white"></span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="font-bold text-slate-400">적에게 주는 피해량(곱연산):</span>
+              <span className="font-black text-white"></span>
+            </div>
+          </div>
           ) : (
             <div className="text-center py-2 flex flex-col items-center gap-2 opacity-30">
               <TrendingUp className="w-6 h-6 text-slate-600" />

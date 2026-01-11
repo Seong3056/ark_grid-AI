@@ -1,0 +1,112 @@
+{
+  "끝없는 마나": {
+    "cooldown": 7.0,
+    "mana_cost_reduction": 10.0
+  },
+
+  "금단의 주문": {
+    "evolution_damage_pct": 10.0
+  },
+
+  "예리한 감각": {
+    "critical_pct": 4.0,
+    "evolution_damage_pct": 5.0
+  },
+
+  "한계 돌파": {
+    "evolution_damage_pct": 10.0
+  },
+
+  "최적화 훈련": {
+    "cooldown": 4.0,
+    "evolution_damage_pct": 5.0
+  },
+
+  "축복의 여신": {
+    "attack_speed": 3.0,
+    "move_speed": 3.0
+  },
+
+  "무한한 마력": {
+    "evolution_damage_pct": 8.0,
+    "cooldown": 7.0,
+    "mana_cost_reduction": 8.0
+  },
+
+  "혼신의 강타": {
+    "critical_pct": 12.0,
+    "evolution_damage_pct": 2.0
+  },
+
+  "일격": {
+    "critical_pct": 10.0,
+    "critical_damage_pct": 16.0
+  },
+
+  "파괴 전차": {
+    "evolution_damage_pct": 12.0,
+    "attack_speed": 4.0
+  },
+
+  "타이밍 지배": {
+    "cooldown": 5.0,
+    "evolution_damage_pct": 8.0
+  },
+
+  "정열의 춤사위": {
+    "identity_gain": 10.0,
+    "damage_enhancement": 7.0
+  },
+
+  "회심": {
+    "Node_critical_hit_damage_pct": 12.0
+  },
+
+  "달인": {
+    "critical_pct": 7.0,
+    "additional_damage_pct": 8.5
+  },
+
+  "분쇄": {
+    "evolution_damage_pct": 20.0
+  },
+
+  "선각자": {
+    "attack_power_enhancement": 22.0,
+    "cooldown": 5.0
+  },
+
+  "진군": {
+    "damage_enhancement": 24.0
+  },
+
+  "기원": {
+    "attack_power_enhancement": 22.0,
+    "damage_enhancement": 4.0
+  },
+
+  "뭉툭한 가시": {
+    "handler": "blunt_thorn_damage"    
+  },
+
+  "음속 돌파": {
+    "handler": "sonic_break_damage"    
+  },
+
+  "인파이팅": {
+    "evolution_damage_pct": 9.0
+  },
+
+  "입식 타격가": {
+    "evolution_damage_pct": 10.5
+  },
+
+  "마나 용광로": {    
+    "evolution_damage_pct": 12.0
+  },
+
+  "안정된 관리자": {
+    "mark_power": 10.0,
+    "identity_gain": -3.0
+  }
+}

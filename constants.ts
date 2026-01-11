@@ -23,11 +23,12 @@ export interface GradeOption {
   value: CoreGrade;
   will: number;
   point: number;
+  slotCount: number;
 }
 
 export const GRADE_OPTIONS: GradeOption[] = [
-  { label: '영웅', value: 'Hero', will: 9, point: 10 },
-  { label: '전설', value: 'Legend', will: 12, point: 14 },
-  { label: '유물', value: 'Relic', will: 15, point: 20 },
-  { label: '고대', value: 'Ancient', will: 17, point: 20 },
+  { label: '영웅', value: 'Hero', will: 9, point: 10, slotCount: 3 },
+  { label: '전설', value: 'Legend', will: 12, point: 14, slotCount: 4 },
+  { label: '유물', value: 'Relic', will: 15, point: 20, slotCount: 4 },
+  { label: '고대', value: 'Ancient', will: 17, point: 20, slotCount: 4 },
 ];
