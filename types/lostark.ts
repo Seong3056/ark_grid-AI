@@ -46,15 +46,34 @@ export interface ArkPassiveEffect {
     Description: string;
 }
 
+export interface ArkPassivePoint {
+    Name: string;
+    Description: string;
+}
+
 export interface ArkPassive {
     Effects: ArkPassiveEffect[];
-    Points: any[]; // Define more strictly if needed
+    Points: ArkPassivePoint[];
+}
+
+export interface EngravingEffect {
+    Name: string;
+    Description: string;
 }
 
 export interface Engraving {
-    Engravings: any[]; // Define more strictly if needed
-    Effects: any[]; // Define more strictly if needed
-    ArkPassiveEffects: any[]; // Define more strictly if needed
+    Engravings: EngravingEffect[];
+    Effects: EngravingEffect[];
+    ArkPassiveEffects: EngravingEffect[];
+}
+
+export interface Gem {
+    Name: string;
+    Tooltip: string;
+}
+
+export interface ArmoryGem {
+    Gems: Gem[];
 }
 
 // You can expand these types as needed based on what you use from the API.

@@ -109,18 +109,6 @@ const CharacterProfile: React.FC<CharacterProfileProps> = ({
               value={charStats.dmgBuff} 
               sources={charStats.breakdown.dmgBuff} 
             />
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-400">치명타 피해량(합연산):</span>
-              <span className="font-black text-white"></span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-400">치명타 적중시 피해량(곱연산):</span>
-              <span className="font-black text-white"></span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-400">적에게 주는 피해량(곱연산):</span>
-              <span className="font-black text-white"></span>
-            </div>
           </div>
           ) : (
             <div className="text-center py-2 flex flex-col items-center gap-2 opacity-30">
