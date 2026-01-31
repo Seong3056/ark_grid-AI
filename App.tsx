@@ -20,7 +20,7 @@ import Tabs from './components/Tabs';
 import { 
   LayoutGrid, Play, RefreshCcw, Zap, Box, Calculator, Search 
 } from 'lucide-react';
-import { parseCharacterData } from './services/characterParser';
+import { parseCharacterData, UnifiedEquipment } from './services/characterParser';
 import { log } from 'node:console';
 
 type Mode = 'results' | 'inventory';
@@ -41,6 +41,7 @@ const App: React.FC = () => {
   const [optMode, setOptMode] = useState<OptimizationMode>('efficiency');
   const [activeTab, setActiveTab] = useState<MainTab>('캐릭터');
   const [adrenalineBuff, setAdrenalineBuff] = useState<StatSource | null>(null);
+  const [unifiedEquipment, setUnifiedEquipment] = useState<UnifiedEquipment[]>([]);
   
   useEffect(() => {
     setEditableEquipment(equipment);
@@ -210,6 +211,7 @@ const App: React.FC = () => {
       setArkPassive(parsedData.arkPassive);
       setAdrenalineBuff(parsedData.adrenalineBuff);
       setCharStats(parsedData.charStats);
+      setUnifiedEquipment(parsedData.unifiedEquipment);
       setActiveTab('캐릭터');
 
       setStatus('검색 완료');
@@ -400,6 +402,7 @@ const App: React.FC = () => {
               role={role} setRole={setRole} 
               charStats={charStats} loading={loading && loadingType === 'search'} 
               onSearch={handleSearchNickname} 
+              unifiedEquipment={unifiedEquipment}
             />
           </section>
         </div>

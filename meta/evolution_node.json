@@ -5,21 +5,21 @@
   },
 
   "금단의 주문": {
-    "evolution_damage_pct": 10.0
+    "evolution_damage": 10.0
   },
 
   "예리한 감각": {
-    "critical_pct": 4.0,
-    "evolution_damage_pct": 5.0
+    "critical_percent": 4.0,
+    "evolution_damage": 5.0
   },
 
   "한계 돌파": {
-    "evolution_damage_pct": 10.0
+    "evolution_damage": 10.0
   },
 
   "최적화 훈련": {
     "cooldown": 4.0,
-    "evolution_damage_pct": 5.0
+    "evolution_damage": 5.0
   },
 
   "축복의 여신": {
@@ -28,29 +28,29 @@
   },
 
   "무한한 마력": {
-    "evolution_damage_pct": 8.0,
+    "evolution_damage": 8.0,
     "cooldown": 7.0,
     "mana_cost_reduction": 8.0
   },
 
   "혼신의 강타": {
-    "critical_pct": 12.0,
-    "evolution_damage_pct": 2.0
+    "critical_percent": 12.0,
+    "evolution_damage": 2.0
   },
 
   "일격": {
-    "critical_pct": 10.0,
-    "critical_damage_pct": 16.0
+    "critical_percent": 10.0,
+    "critical_damage_percent": 16.0
   },
 
   "파괴 전차": {
-    "evolution_damage_pct": 12.0,
+    "evolution_damage": 12.0,
     "attack_speed": 4.0
   },
 
   "타이밍 지배": {
     "cooldown": 5.0,
-    "evolution_damage_pct": 8.0
+    "evolution_damage": 8.0
   },
 
   "정열의 춤사위": {
@@ -59,16 +59,16 @@
   },
 
   "회심": {
-    "Node_critical_hit_damage_pct": 12.0
+    "Node_critical_hit_damage_percent": 12.0
   },
 
   "달인": {
-    "critical_pct": 7.0,
-    "additional_damage_pct": 8.5
+    "critical_percent": 7.0,
+    "additional_damage": 8.5
   },
 
   "분쇄": {
-    "evolution_damage_pct": 20.0
+    "evolution_damage": 20.0
   },
 
   "선각자": {
@@ -94,15 +94,15 @@
   },
 
   "인파이팅": {
-    "evolution_damage_pct": 9.0
+    "evolution_damage": 9.0
   },
 
   "입식 타격가": {
-    "evolution_damage_pct": 10.5
+    "evolution_damage": 10.5
   },
 
   "마나 용광로": {    
-    "evolution_damage_pct": 12.0
+    "evolution_damage": 12.0
   },
 
   "안정된 관리자": {

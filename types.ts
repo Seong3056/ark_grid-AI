@@ -33,22 +33,15 @@ export interface CharStats {
   weaponAtkPower: string;
   additionalDamage: string;
   critRate: string;
+  critDamage: string;
+  damage: string;
   breakdown: {
     attackPower: StatSource[];
     weaponAtkPower: StatSource[];
     additionalDamage: StatSource[];
     critDamage: StatSource[];
-    branding: StatSource[];
-    atkBuff: StatSource[];
-    dmgBuff: StatSource[];
-    flatDex: StatSource[];
-    flatWeaponAtk: StatSource[];
-  };
-}
-    attackPower: StatSource[];
-    weaponAtkPower: StatSource[];
-    additionalDamage: StatSource[];
-    critDamage: StatSource[];
+    critRate: StatSource[];
+    damage: StatSource[];
     branding: StatSource[];
     atkBuff: StatSource[];
     dmgBuff: StatSource[];

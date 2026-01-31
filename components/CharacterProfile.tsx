@@ -67,47 +67,64 @@ const CharacterProfile: React.FC<CharacterProfileProps> = ({
 
         <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800/50 min-h-[100px] flex flex-col justify-center">
           {charStats ? (
-            <div className="space-y-1 text-xs">
-            <div className="flex justify-between items-center">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div className="flex justify-between items-center col-span-2">
               <span className="font-bold text-slate-400">전투력 :</span>
               <span className="font-black text-white">{charStats.combatPower}</span>
             </div>
             <StatWithTooltip 
-              label="공격력 :" 
+              label="공격력" 
               value={charStats.attackPower} 
-              sources={charStats.breakdown.attackPower} 
+              sources={charStats.breakdown.attackPower}
+              colorClass="text-red-400"
             />
             <StatWithTooltip 
-              label="무기 공격력 :" 
+              label="무기 공격력" 
               value={charStats.weaponAtkPower} 
-              sources={charStats.breakdown.weaponAtkPower} 
+              sources={charStats.breakdown.weaponAtkPower}
+              colorClass="text-red-400"
             />
             <StatWithTooltip 
-              label="추가피해:" 
+              label="추가 피해" 
               value={charStats.additionalDamage} 
-              sources={charStats.breakdown.additionalDamage} 
+              sources={charStats.breakdown.additionalDamage}
+              colorClass="text-red-400"
             />
-            <div className="flex justify-between items-center">
-              <span className="font-bold text-slate-400">치명타 적중률:</span>
-              <span className="font-black text-white">{charStats.critRate}</span>
-            </div>
-            <div className="text-right text-[10px] text-slate-500/80 -mt-1">
-              (치명스탯+아크패시브 치명타 적중률+각인(아드레날린, 정밀단도)+반지 연마효과, 팔찌 효과)
-            </div>
+            <StatWithTooltip
+              label="피해"
+              value={charStats.damage}
+              sources={charStats.breakdown.damage}
+              colorClass="text-red-400"
+            />
             <StatWithTooltip 
-              label="낙인력 :" 
+              label="치명타 적중률" 
+              value={charStats.critRate} 
+              sources={charStats.breakdown.critRate}
+              colorClass="text-sky-400"
+            />
+            <StatWithTooltip 
+              label="치명타 피해" 
+              value={charStats.critDamage} 
+              sources={charStats.breakdown.critDamage}
+              colorClass="text-sky-400"
+            />
+            <StatWithTooltip 
+              label="낙인력" 
               value={charStats.branding} 
               sources={charStats.breakdown.branding} 
+              colorClass="text-amber-400"
             />
             <StatWithTooltip 
-              label="아군 공격 강화 :" 
+              label="아군 공격 강화" 
               value={charStats.atkBuff} 
-              sources={charStats.breakdown.atkBuff} 
+              sources={charStats.breakdown.atkBuff}
+              colorClass="text-emerald-400"
             />
             <StatWithTooltip 
-              label="아군 피해 강화 :" 
+              label="아군 피해 강화" 
               value={charStats.dmgBuff} 
-              sources={charStats.breakdown.dmgBuff} 
+              sources={charStats.breakdown.dmgBuff}
+              colorClass="text-emerald-400" 
             />
           </div>
           ) : (
