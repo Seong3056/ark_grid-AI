@@ -1,47 +1,8 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import { ArkGridGem, AnalysisResponse, MultiOptimizationResult, CoreGrade, CoreType, SingleOptimization, PlayerRole } from "../types";
-
-const DEALER_SCALING_DATA = {
-  "질서의 해": { "10": 1.5, "14": 4.0, "17": 7.5, "18": 7.67, "19": 7.83, "20": 8.0 },
-  "질서의 달": { "10": 1.5, "14": 4.0, "17": 7.5, "18": 7.67, "19": 7.83, "20": 8.0 },
-  "질서의 별": { "10": 1.0, "14": 2.5, "17": 4.5, "18": 4.67, "19": 4.83, "20": 5.0 },
-  "혼돈의 해": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 },
-  "혼돈의 달": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 },
-  "혼돈의 별": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 }
-};
-
-const SUPPORT_SCALING_DATA = {
-  "질서의 해": { "10": 1.2, "14": 1.2, "17": 7.8, "18": 7.98, "19": 8.1, "20": 8.22 },
-  "질서의 달": { "10": 1.2, "14": 1.2, "17": 7.8, "18": 7.98, "19": 8.1, "20": 8.22 },
-  "질서의 별": { "10": 0, "14": 0.6, "17": 2.1, "18": 2.2, "19": 2.3, "20": 2.4 },
-  "혼돈의 해": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 },
-  "혼돈의 달": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 },
-  "혼돈의 별": { "10": 0.5, "14": 1.0, "17": 2.5, "18": 2.67, "19": 2.83, "20": 3.0 }
-};
-
-const WILL_LIMITS = {
-  'Hero': 9,
-  'Legend': 12,
-  'Relic': 15,
-  'Ancient': 17
-};
-
-const POINT_LIMITS = {
-  'Hero': 10,
-  'Legend': 14,
-  'Relic': 20,
-  'Ancient': 20
-};
-
-const COMBAT_COEFFICIENTS: Record<string, number> = {
-  '공격력': 0.00036666,
-  '추가 피해': 0.000807692307692308,
-  '보스 피해': 0.00083334,
-  '낙인력': 0.0005,
-  '아군 공격 강화': 0.0005,
-  '아군 피해 강화': 0.0005
-};
+import { DEALER_SCALING_TABLE, SUPPORT_SCALING_TABLE } from "./coreData";
+import { WILL_LIMITS, POINT_LIMITS, GEM_COEFFICIENTS } from "../constants";
 
 export const analyzeArkGridFromImage = async (base64Image: string, geminiApiKey: string): Promise<AnalysisResponse> => {
   const ai = new GoogleGenAI({ apiKey: geminiApiKey });
@@ -100,7 +61,7 @@ export const analyzeArkGridFromImage = async (base64Image: string, geminiApiKey:
 export const optimizeAllCores = async (gems: ArkGridGem[], coreConfigs: Record<CoreType, CoreGrade>, role: PlayerRole, geminiApiKey: string): Promise<MultiOptimizationResult> => {
   const ai = new GoogleGenAI({ apiKey: geminiApiKey });
   
-  const scalingData = role === 'dealer' ? DEALER_SCALING_DATA : SUPPORT_SCALING_DATA;
+  const scalingData = role === 'dealer' ? DEALER_SCALING_TABLE : SUPPORT_SCALING_TABLE;
 
   const prompt = `
     인벤토리 젬 목록: ${JSON.stringify(gems)}
@@ -109,7 +70,7 @@ export const optimizeAllCores = async (gems: ArkGridGem[], coreConfigs: Record<C
     의지력 제한: ${JSON.stringify(WILL_LIMITS)}
     포인트 제한: ${JSON.stringify(POINT_LIMITS)}
     포인트 스케일링 데이터: ${JSON.stringify(scalingData)}
-    전투 옵션 계수: ${JSON.stringify(COMBAT_COEFFICIENTS)}
+    전투 옵션 계수: ${JSON.stringify(GEM_COEFFICIENTS)}
     
     필수 규칙 (절대 준수):
     1. 각 코어당 최대 4개의 젬만 배치할 수 있습니다. 4개를 초과하면 안됩니다.

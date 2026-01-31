@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   ArkGridGem, MultiOptimizationResult, CoreGrade, CoreType, 
-  SingleOptimization, PlayerRole, OptimizationMode, StatSource, CharStats 
+  SingleOptimization, PlayerRole, OptimizationMode, StatSource, CharStats, UnifiedEquipment
 } from './types';
 import { ArmoryEquipment, ArkPassive } from './types/lostark';
 import { 
@@ -20,7 +20,7 @@ import Tabs from './components/Tabs';
 import { 
   LayoutGrid, Play, RefreshCcw, Zap, Box, Calculator, Search 
 } from 'lucide-react';
-import { parseCharacterData, UnifiedEquipment } from './services/characterParser';
+import { parseCharacterData } from './services/characterParser';
 import { log } from 'node:console';
 
 type Mode = 'results' | 'inventory';

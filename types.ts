@@ -72,3 +72,29 @@ export interface MultiOptimizationResult {
 export interface AnalysisResponse {
   detectedGems: ArkGridGem[];
 }
+
+export interface UnifiedEquipment {
+  type: string;
+  name: string;
+  stat: number;
+  crit: number;
+  specialization: number;
+  swiftness: number;
+  domination: number;
+  endurance: number;
+  expertise: number;
+  weapon_atk: number;
+  atk: number;
+  damage: number;
+  additional_damage: number;
+  additional_damage_real: number;
+  atk_percent: number;
+  atk_percent_real: number;
+  base_atk_percent: number;
+  weapon_atk_percent: number;
+  critical_percent: number;
+  critical_damage: number;
+  critical_hit_damage: number;
+  cooldown: number;
+  evolution_damage: number;
+}

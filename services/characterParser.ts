@@ -9,7 +9,7 @@ import {
   ArmoryGem,
   Gem
 } from './types/lostark';
-import { CharStats, StatSource } from './types';
+import { CharStats, StatSource, UnifiedEquipment } from './types';
 import evolutionNodes from '../meta/evolution_node.json';
 import engravingTable from '../meta/engraving_table.json';
 
@@ -18,26 +18,6 @@ const EXCLUDE_FROM_INTRINSIC = [
   "달인", "아드레날린", "선각자", "진군",
   "입식 타격가", "마나용광로", "안정된 관리자"
 ];
-
-export interface UnifiedEquipment {
-  type: string;
-  name: string;
-  stat: number;
-  weapon_atk: number;
-  atk: number;
-  damage: number;
-  additional_damage: number;
-  additional_damage_real: number;
-  atk_percent: number;
-  atk_percent_real: number;
-  base_atk_percent: number;
-  weapon_atk_percent: number;
-  critical_percent: number;
-  critical_damage: number;
-  critical_hit_damage: number;
-  cooldown: number;
-  evolution_damage: number;
-}
 
 interface RawArmoryData {
   ArmoryProfile: ArmoryProfile;
@@ -56,106 +36,123 @@ interface ParsedCharacterData {
   unifiedEquipment: UnifiedEquipment[];
 }
 
-export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
-  const {
-    ArmoryProfile: profile,
-    ArmoryEquipment: equipmentData,
-    ArkPassive: arkPassiveData,
-    ArmoryEngraving: engravingData,
-    ArmoryGem: gemData,
-    ArkGrid: arkGridData,
-  } = data;
+interface StatBreakdown {
+  attackPower: StatSource[];
+  weaponAtkPower: StatSource[];
+  baseAtkPower: StatSource[];
+  additionalDamage: StatSource[];
+  critDamage: StatSource[];
+  critRate: StatSource[];
+  damage: StatSource[];
+  branding: StatSource[];
+  atkBuff: StatSource[];
+  dmgBuff: StatSource[];
+  flatDex: StatSource[];
+  flatWeaponAtk: StatSource[];
+}
 
-  if (!profile) {
-    throw new Error("ArmoryProfile is missing in the API response.");
+const extractStats = (text: string, unifiedItem: UnifiedEquipment) => {
+  const cleanText = text.replace(/<[^>]*>/g, ' ');
+
+  const statMatch = cleanText.match(/(?:힘|민첩|지능)\s*\+?([\d,]+)/);
+  if (statMatch) unifiedItem.stat += parseFloat(statMatch[1].replace(/,/g, ''));
+
+  const combatStatRegex = /(치명|특화|신속|제압|인내|숙련)\s*\+?([\d,]+)/g;
+  for (const m of cleanText.matchAll(combatStatRegex)) {
+    const type = m[1];
+    const value = parseInt(m[2].replace(/,/g, ''), 10);
+    switch (type) {
+      case '치명': unifiedItem.crit += value; break;
+      case '특화': unifiedItem.specialization += value; break;
+      case '신속': unifiedItem.swiftness += value; break;
+      case '제압': unifiedItem.domination += value; break;
+      case '인내': unifiedItem.endurance += value; break;
+      case '숙련': unifiedItem.expertise += value; break;
+    }
   }
 
-  const arkPassivePoints: ArkPassivePoint[] = arkPassiveData?.Points || [];
-  const engravings = engravingData?.Engravings || [];
-  const arkPassiveEngravings = engravingData?.ArkPassiveEffects || [];
+  const atkRegex = /(무기\s*)?공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)(%?)/g;
+  for (const m of cleanText.matchAll(atkRegex)) {
+    const prefix = cleanText.substring(Math.max(0, m.index! - 5), m.index!);
+    if (prefix.includes("아군")) continue;
+    if (prefix.includes("기본")) continue;
 
-  let adrenalineBuff: StatSource | null = null;
+    const isWeapon = !!m[1];
+    const value = parseFloat(m[2]);
+    const isPercent = m[3] === '%';
 
-  const breakdown = {
-    attackPower: [] as StatSource[],
-    weaponAtkPower: [] as StatSource[],
-    baseAtkPower: [] as StatSource[],
-    additionalDamage: [] as StatSource[],
-    critDamage: [{ name: '기본', value: 200 }] as StatSource[],
-    critRate: [] as StatSource[],
-    damage: [] as StatSource[],
-    branding: [] as StatSource[],
-    atkBuff: [] as StatSource[],
-    dmgBuff: [] as StatSource[],
-    flatDex: [] as StatSource[],
-    flatWeaponAtk: [] as StatSource[],
-  };
-
-  const unifiedEquipment: UnifiedEquipment[] = [];
-
-  const extractStats = (text: string, unifiedItem: UnifiedEquipment) => {
-    const cleanText = text.replace(/<[^>]*>/g, ' ');
-
-    const statMatch = cleanText.match(/(?:힘|민첩|지능)\s*\+?(\d+)/);
-    if (statMatch) unifiedItem.stat += parseFloat(statMatch[1]);
-
-    const atkRegex = /(무기\s*)?공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)(%?)/g;
-    for (const m of cleanText.matchAll(atkRegex)) {
-      const prefix = cleanText.substring(Math.max(0, m.index! - 5), m.index!);
-      if (prefix.includes("아군")) continue;
-      if (prefix.includes("기본")) continue;
-
-      const isWeapon = !!m[1];
-      const value = parseFloat(m[2]);
-      const isPercent = m[3] === '%';
-
-      if (isWeapon) {
-        if (isPercent) unifiedItem.weapon_atk_percent += value;
-        else unifiedItem.weapon_atk += value;
-      } else {
-        if (isPercent) unifiedItem.atk_percent += value;
-        else unifiedItem.atk += value;
-      }
+    if (isWeapon) {
+      if (isPercent) unifiedItem.weapon_atk_percent += value;
+      else unifiedItem.weapon_atk += value;
+    } else {
+      if (isPercent) unifiedItem.atk_percent += value;
+      else unifiedItem.atk += value;
     }
+  }
 
-    const baseAtkMatch = cleanText.match(/기본\s*공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
-    if (baseAtkMatch) unifiedItem.base_atk_percent += parseFloat(baseAtkMatch[1]);
+  const baseAtkMatch = cleanText.match(/기본\s*공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (baseAtkMatch) unifiedItem.base_atk_percent += parseFloat(baseAtkMatch[1]);
 
-    const damageRegex = /(공격이\s*치명타로\s*적중\s*시\s*)?적에게\s*주는\s*피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/g;
-    for (const m of cleanText.matchAll(damageRegex)) {
-      const isCritHit = !!m[1];
-      const value = parseFloat(m[2]);
-      if (isCritHit) unifiedItem.critical_hit_damage += value;
-      else unifiedItem.damage += value;
+  const damageRegex = /(공격이\s*치명타로\s*적중\s*시\s*)?적에게\s*주는\s*피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/g;
+  for (const m of cleanText.matchAll(damageRegex)) {
+    const isCritHit = !!m[1];
+    const value = parseFloat(m[2]);
+    if (isCritHit) unifiedItem.critical_hit_damage += value;
+    else unifiedItem.damage += value;
+  }
+
+  const addDmgMatch = cleanText.match(/추가 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (addDmgMatch) unifiedItem.additional_damage += parseFloat(addDmgMatch[1]);
+
+  const critRateMatch = cleanText.match(/치명타 적중률(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (critRateMatch) unifiedItem.critical_percent += parseFloat(critRateMatch[1]);
+
+  const critDmgMatch = cleanText.match(/치명타 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (critDmgMatch) unifiedItem.critical_damage += parseFloat(critDmgMatch[1]);
+
+  const cooldownRegex = /(?:스킬\s*)?재사용 대기시간(?:이)?\s*(?:(감소|증가)\s*\+?(\d+(?:\.\d+)?)%|\+?(\d+(?:\.\d+)?)%\s*(감소|증가))/;
+  const cooldownMatch = cleanText.match(cooldownRegex);
+  if (cooldownMatch) {
+    if (unifiedItem.name.includes("용사의 문장")) return;
+
+    const type = cooldownMatch[1] || cooldownMatch[4];
+    const value = parseFloat(cooldownMatch[2] || cooldownMatch[3]);
+    if (type === '증가') {
+      unifiedItem.cooldown -= value;
+    } else {
+      unifiedItem.cooldown += value;
     }
+  }
 
-    const addDmgMatch = cleanText.match(/추가 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-    if (addDmgMatch) unifiedItem.additional_damage += parseFloat(addDmgMatch[1]);
-
-    const critRateMatch = cleanText.match(/치명타 적중률(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
-    if (critRateMatch) unifiedItem.critical_percent += parseFloat(critRateMatch[1]);
-
-    const critDmgMatch = cleanText.match(/치명타 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-    if (critDmgMatch) unifiedItem.critical_damage += parseFloat(critDmgMatch[1]);
-
-    const cooldownRegex = /(?:스킬\s*)?재사용 대기시간(?:이)?\s*(?:(감소|증가)\s*\+?(\d+(?:\.\d+)?)%|\+?(\d+(?:\.\d+)?)%\s*(감소|증가))/;
-    const cooldownMatch = cleanText.match(cooldownRegex);
-    if (cooldownMatch) {
-      const type = cooldownMatch[1] || cooldownMatch[4];
-      const value = parseFloat(cooldownMatch[2] || cooldownMatch[3]);
-      if (type === '증가') {
-        unifiedItem.cooldown -= value;
-      } else {
-        unifiedItem.cooldown += value;
-      }
+  const atkSpeedMatch = cleanText.match(/공격\s*속도(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (atkSpeedMatch) {
+    if (!unifiedItem.name.includes("성운 나침반") && !unifiedItem.name.includes("원목 나침반")) {
+      unifiedItem.attack_speed += parseFloat(atkSpeedMatch[1]);
     }
+  }
 
-    const evoDmgMatch = cleanText.match(/진화형 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-    if (evoDmgMatch) unifiedItem.evolution_damage += parseFloat(evoDmgMatch[1]);
-  };
+  const moveSpeedMatch = cleanText.match(/이동\s*속도(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (moveSpeedMatch) {
+    if (!unifiedItem.name.includes("성운 나침반") && !unifiedItem.name.includes("원목 나침반")) {
+      unifiedItem.move_speed += parseFloat(moveSpeedMatch[1]);
+    }
+  }
 
-  // 1. 장비 툴팁 파싱
-  (equipmentData || []).forEach((item: ArmoryEquipment) => {
+  const evoDmgMatch = cleanText.match(/진화형 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
+  if (evoDmgMatch) unifiedItem.evolution_damage += parseFloat(evoDmgMatch[1]);
+};
+
+const createUnifiedItem = (type: string, name: string): UnifiedEquipment => ({
+  type, name,
+  stat: 0, weapon_atk: 0, atk: 0, damage: 0, engraving_damage: 0, additional_damage: 0, additional_damage_real: 0,
+  crit: 0, specialization: 0, swiftness: 0, domination: 0, endurance: 0, expertise: 0,
+  atk_percent: 0, atk_percent_real: 0, base_atk_percent: 0, weapon_atk_percent: 0,
+  critical_percent: 0, critical_damage: 0, critical_hit_damage: 0,
+  cooldown: 0, evolution_damage: 0, attack_speed: 0, move_speed: 0
+});
+
+const parseEquipment = (equipmentData: ArmoryEquipment[], breakdown: StatBreakdown, unifiedEquipment: UnifiedEquipment[]) => {
+  equipmentData.forEach((item: ArmoryEquipment) => {
     if (!item.Tooltip) return;
     const name = item.Name;
     const tooltip = item.Tooltip;
@@ -251,15 +248,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
           const cleanEffect = effect.replace(/<[^>]*>/g, ' ').trim();
           if (!cleanEffect) return;
 
-          const braceletOptionItem: UnifiedEquipment = {
-            type: '팔찌',
-            name: `팔찌 옵션 ${index + 1}`,
-            stat: 0, weapon_atk: 0, atk: 0, damage: 0, additional_damage: 0, additional_damage_real: 0,
-            atk_percent: 0, atk_percent_real: 0, base_atk_percent: 0, weapon_atk_percent: 0,
-            critical_percent: 0, critical_damage: 0, critical_hit_damage: 0,
-            cooldown: 0, evolution_damage: 0
-          };
-          
+          const braceletOptionItem = createUnifiedItem('팔찌', `팔찌 옵션 ${index + 1}`);
           extractStats(effect, braceletOptionItem);
           
           const hasStats = Object.entries(braceletOptionItem).some(([k, v]) => k !== 'type' && k !== 'name' && typeof v === 'number' && v !== 0);
@@ -269,25 +258,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
       }
     }
 
-    const unifiedItem: UnifiedEquipment = {
-      type: item.Type,
-      name: item.Name,
-      stat: 0,
-      weapon_atk: 0,
-      atk: 0,
-      damage: 0,
-      additional_damage: 0,
-      additional_damage_real: 0,
-      atk_percent: 0,
-      atk_percent_real: 0,
-      base_atk_percent: 0,
-      weapon_atk_percent: 0,
-      critical_percent: 0,
-      critical_damage: 0,
-      critical_hit_damage: 0,
-      cooldown: 0,
-      evolution_damage: 0
-    };
+    const unifiedItem = createUnifiedItem(item.Type, item.Name);
 
     try {
       const tooltipObj = JSON.parse(item.Tooltip);
@@ -296,6 +267,91 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
     } catch (e) { extractStats(item.Tooltip, unifiedItem); }
     unifiedEquipment.push(unifiedItem);
   });
+};
+
+export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
+  const {
+    ArmoryProfile: profile,
+    ArmoryEquipment: equipmentData,
+    ArkPassive: arkPassiveData,
+    ArmoryEngraving: engravingData,
+    ArmoryGem: gemData,
+    ArkGrid: arkGridData,
+  } = data;
+
+  if (!profile) {
+    throw new Error("ArmoryProfile is missing in the API response.");
+  }
+
+  const arkPassivePoints: ArkPassivePoint[] = arkPassiveData?.Points || [];
+  const engravings = engravingData?.Engravings || [];
+  const arkPassiveEngravings = engravingData?.ArkPassiveEffects || [];
+
+  let adrenalineBuff: StatSource | null = null;
+
+  const breakdown: StatBreakdown = {
+    attackPower: [] as StatSource[],
+    weaponAtkPower: [] as StatSource[],
+    baseAtkPower: [] as StatSource[],
+    additionalDamage: [] as StatSource[],
+    critDamage: [{ name: '기본', value: 200 }] as StatSource[],
+    critRate: [] as StatSource[],
+    damage: [] as StatSource[],
+    branding: [] as StatSource[],
+    atkBuff: [] as StatSource[],
+    dmgBuff: [] as StatSource[],
+    flatDex: [] as StatSource[],
+    flatWeaponAtk: [] as StatSource[],
+  };
+
+  const unifiedEquipment: UnifiedEquipment[] = [];
+
+  // 1. 장비 툴팁 파싱
+  parseEquipment(equipmentData || [], breakdown, unifiedEquipment);
+
+  // 2. 전투 특성 보정 (ArmoryProfile.Stats 기준)
+  if (profile.Stats) {
+    const currentStats = {
+      '치명': unifiedEquipment.reduce((sum, i) => sum + i.crit, 0),
+      '특화': unifiedEquipment.reduce((sum, i) => sum + i.specialization, 0),
+      '신속': unifiedEquipment.reduce((sum, i) => sum + i.swiftness, 0),
+      '제압': unifiedEquipment.reduce((sum, i) => sum + i.domination, 0),
+      '인내': unifiedEquipment.reduce((sum, i) => sum + i.endurance, 0),
+      '숙련': unifiedEquipment.reduce((sum, i) => sum + i.expertise, 0),
+    };
+
+    const baseStatsItem = createUnifiedItem('기본/내실/펫', '기본 특성');
+    baseStatsItem.critical_damage = 200;
+
+    profile.Stats.forEach(stat => {
+      if (currentStats.hasOwnProperty(stat.Type)) {
+        const totalValue = parseInt(stat.Value.replace(/,/g, ''), 10);
+        const diff = totalValue - currentStats[stat.Type as keyof typeof currentStats];
+        if (diff !== 0) {
+          switch (stat.Type) {
+            case '치명': baseStatsItem.crit = diff; break;
+            case '특화': baseStatsItem.specialization = diff; break;
+            case '신속': baseStatsItem.swiftness = diff; break;
+            case '제압': baseStatsItem.domination = diff; break;
+            case '인내': baseStatsItem.endurance = diff; break;
+            case '숙련': baseStatsItem.expertise = diff; break;
+          }
+        }
+      }
+    });
+
+    const totalCrit = parseInt(profile.Stats.find(s => s.Type === '치명')?.Value.replace(/,/g, '') || '0', 10);
+    if (totalCrit > 0) baseStatsItem.critical_percent = totalCrit * 0.03579099;
+
+    const totalSwift = parseInt(profile.Stats.find(s => s.Type === '신속')?.Value.replace(/,/g, '') || '0', 10);
+    if (totalSwift > 0) {
+      baseStatsItem.cooldown = totalSwift * 0.0214739;
+      baseStatsItem.attack_speed = totalSwift * 0.0171791;
+      baseStatsItem.move_speed = totalSwift * 0.0171791;
+    }
+
+    unifiedEquipment.push(baseStatsItem);
+  }
 
   // 2. 아크 패시브 진화 랭크 (기본 낙인력)
   if (arkPassivePoints.length > 0) {
@@ -314,6 +370,10 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
         if (rankMatch) {
           const rankVal = parseInt(rankMatch[1], 10) * 0.1;
           breakdown.weaponAtkPower.push({ name: "아크 패시브: 깨달음 랭크", value: rankVal });
+
+          const enlightItem = createUnifiedItem('아크 패시브', '깨달음 랭크');
+          enlightItem.weapon_atk_percent = rankVal;
+          unifiedEquipment.push(enlightItem);
         }
       }
     }
@@ -332,7 +392,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
         name = name.split(":")[1].trim();
     }
 
-    const nodeData = evolutionNodes[name as keyof typeof evolutionNodes];
+    const nodeData = evolutionNodes[name as keyof typeof evolutionNodes] as any;
     if (nodeData) {
         const lvMatch = desc.match(/Lv\.(\d+)/i);
         const level = lvMatch ? parseInt(lvMatch[1], 10) : 1;
@@ -341,13 +401,17 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
         if (name === '일격') {
             sourceName = `아크 패시브: ${originalName} (달인)`;
         }
+        if (name === '달인') {
+            sourceName = `아크 패시브: ${originalName} (5스택)`;
+        }
 
-        if (nodeData.critical_pct) {
-            const critVal = nodeData.critical_pct * level;
+        const critPct = nodeData.critical_percent || nodeData.critical_pct;
+        if (critPct) {
+            const critVal = critPct * level;
             breakdown.critRate.push({ name: sourceName, value: critVal });
         }
         
-        const critDmg = nodeData.critical_damage_pct || nodeData.Node_critical_hit_damage_pct;
+        const critDmg = nodeData.critical_damage_percent || nodeData.critical_damage_pct || nodeData.Node_critical_hit_damage_pct;
         if (critDmg) {
             const critDmgVal = critDmg * level;
             breakdown.critDamage.push({ name: sourceName, value: critDmgVal });
@@ -357,9 +421,13 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
     name = originalName;
 
     if (name.includes("달인") || desc.includes("달인")) {
-      const valMatch = desc.match(/(\d*\.\d+|\d+)\s*%/);
-      const val = valMatch ? parseFloat(valMatch[1]) : 8.5;
+      const valMatch = desc.match(/추가 피해\s*(?:<[^>]+>)*\+?(\d*\.\d+|\d+)%/);
+      const val = valMatch ? parseFloat(valMatch[1]) * 5 : 8.5;
       breakdown.additionalDamage.push({ name: "아크 패시브: 달인", value: val });
+      
+      const critMatch = desc.match(/치명타 적중률\s*(?:<[^>]+>)*\+?(\d*\.\d+|\d+)%/);
+      const critVal = critMatch ? parseFloat(critMatch[1]) * 5 : 7.0;
+      breakdown.critRate.push({ name: "아크 패시브: 달인", value: critVal });
       return;
     }
 
@@ -410,89 +478,14 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
 
   (arkPassiveData?.Effects || []).forEach((e: ArkPassiveEffect) => {
     if (e.Name === '도약' || e.Name === '깨달음') return;
-    const unifiedItem: UnifiedEquipment = {
-      type: '아크 패시브',
-      name: e.Description.replace(/<[^>]*>/g, ''),
-      stat: 0,
-      weapon_atk: 0,
-      atk: 0,
-      damage: 0,
-      additional_damage: 0,
-      additional_damage_real: 0,
-      atk_percent: 0,
-      atk_percent_real: 0,
-      base_atk_percent: 0,
-      weapon_atk_percent: 0,
-      critical_percent: 0,
-      critical_damage: 0,
-      critical_hit_damage: 0,
-      cooldown: 0,
-      evolution_damage: 0
-    };
-
-    const extractStats = (text: string) => {
-      const cleanText = text.replace(/<[^>]*>/g, ' ');
-
-      const statMatch = cleanText.match(/(?:힘|민첩|지능)\s*\+?(\d+)/);
-      if (statMatch) unifiedItem.stat += parseFloat(statMatch[1]);
-
-      const atkRegex = /(무기\s*)?공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)(%?)/g;
-      for (const m of cleanText.matchAll(atkRegex)) {
-        const prefix = cleanText.substring(Math.max(0, m.index! - 5), m.index!);
-        if (prefix.includes("아군")) continue;
-        if (prefix.includes("기본")) continue;
-
-        const isWeapon = !!m[1];
-        const value = parseFloat(m[2]);
-        const isPercent = m[3] === '%';
-
-        if (isWeapon) {
-          if (isPercent) unifiedItem.weapon_atk_percent += value;
-          else unifiedItem.weapon_atk += value;
-        } else {
-          if (isPercent) {
-            unifiedItem.atk_percent += value;
-          }
-          else unifiedItem.atk += value;
-        }
-      }
-
-      const baseAtkMatch = cleanText.match(/기본\s*공격력(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
-      if (baseAtkMatch) unifiedItem.base_atk_percent += parseFloat(baseAtkMatch[1]);
-
-      const damageRegex = /(공격이\s*치명타로\s*적중\s*시\s*)?적에게\s*주는\s*피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/g;
-      for (const m of cleanText.matchAll(damageRegex)) {
-        const isCritHit = !!m[1];
-        const value = parseFloat(m[2]);
-        if (isCritHit) unifiedItem.critical_hit_damage += value;
-        else unifiedItem.damage += value;
-      }
-
-      const addDmgMatch = cleanText.match(/추가 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-      if (addDmgMatch) unifiedItem.additional_damage += parseFloat(addDmgMatch[1]);
-
-      const critRateMatch = cleanText.match(/치명타 적중률(?:이)?\s*\+?(\d+(?:\.\d+)?)%/);
-      if (critRateMatch) unifiedItem.critical_percent += parseFloat(critRateMatch[1]);
-
-      const critDmgMatch = cleanText.match(/치명타 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-      if (critDmgMatch) unifiedItem.critical_damage += parseFloat(critDmgMatch[1]);
-
-      const cooldownRegex = /(?:스킬\s*)?재사용 대기시간(?:이)?\s*(?:감소\s*\+?(\d+(?:\.\d+)?)%|\+?(\d+(?:\.\d+)?)%\s*감소)/;
-      const cooldownMatch = cleanText.match(cooldownRegex);
-      if (cooldownMatch) {
-        unifiedItem.cooldown += parseFloat(cooldownMatch[1] || cooldownMatch[2]);
-      }
-
-      const evoDmgMatch = cleanText.match(/진화형 피해(?:가)?\s*\+?(\d+(?:\.\d+)?)%/);
-      if (evoDmgMatch) unifiedItem.evolution_damage += parseFloat(evoDmgMatch[1]);
-    };
+    const unifiedItem = createUnifiedItem('아크 패시브', e.Description.replace(/<[^>]*>/g, ''));
 
     if (e.ToolTip) {
       try {
         const tooltipObj = JSON.parse(e.ToolTip);
-        const traverse = (obj: any) => { if (typeof obj === 'string') extractStats(obj); else if (typeof obj === 'object' && obj !== null) for (const key in obj) traverse(obj[key]); };
+        const traverse = (obj: any) => { if (typeof obj === 'string') extractStats(obj, unifiedItem); else if (typeof obj === 'object' && obj !== null) for (const key in obj) traverse(obj[key]); };
         traverse(tooltipObj);
-      } catch (err) { extractStats(e.ToolTip); }
+      } catch (err) { extractStats(e.ToolTip, unifiedItem); }
     }
     
     const rawDesc = e.Description || "";
@@ -524,53 +517,21 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
             unifiedItem.additional_damage_real = (nodeData as any).additional_damage * level;
             unifiedItem.additional_damage = 0;
         }
+
+        if (name.includes('달인')) {
+            const critMatch = desc.match(/치명타 적중률\s*(?:<[^>]+>)*\+?(\d*\.\d+|\d+)%/);
+            unifiedItem.critical_percent = critMatch ? parseFloat(critMatch[1]) * 5 : 7.0;
+        }
     }
 
     const hasStats = Object.entries(unifiedItem).some(([k, v]) => k !== 'type' && k !== 'name' && typeof v === 'number' && v !== 0);
-
-    // engraving_table.json 기반 damage 값 덮어쓰기 (지정된 각인 제외)
-    const EXCLUDED_ENGRAVINGS_FROM_TABLE = ["아드레날린", "예리한 둔기", "정밀 단도", "에테르 포식자"];
-    if (engravingTable[name as keyof typeof engravingTable] && !EXCLUDED_ENGRAVINGS_FROM_TABLE.includes(name)) {
-        const levelKey = String(e.Level || 0);
-        const stoneKey = String(e.AbilityStoneLevel || 0);
-        // @ts-ignore
-        const tableValue = engravingTable[name]?.[levelKey]?.[stoneKey];
-        
-        if (typeof tableValue === 'number') {
-            unifiedItem.damage = tableValue;
-            // 테이블 값을 사용할 경우 중복 합산을 방지하기 위해 기존 파싱된 스탯 초기화
-            unifiedItem.atk_percent = 0;
-            unifiedItem.atk_percent_real = 0;
-            unifiedItem.critical_percent = 0;
-            unifiedItem.critical_damage = 0;
-        }
-    }
 
     if (hasStats) unifiedEquipment.push(unifiedItem);
   });
 
   // 아크 그리드 효과
   (arkGridData?.Effects || []).forEach((effect: any) => {
-    const unifiedItem: UnifiedEquipment = {
-      type: '아크 그리드',
-      name: effect.Name,
-      stat: 0,
-      weapon_atk: 0,
-      atk: 0,
-      damage: 0,
-      additional_damage: 0,
-      additional_damage_real: 0,
-      atk_percent: 0,
-      atk_percent_real: 0,
-      base_atk_percent: 0,
-      weapon_atk_percent: 0,
-      critical_percent: 0,
-      critical_damage: 0,
-      critical_hit_damage: 0,
-      cooldown: 0,
-      evolution_damage: 0
-    };
-
+    const unifiedItem = createUnifiedItem('아크 그리드', effect.Name);
     extractStats(effect.Tooltip, unifiedItem);
 
     if (effect.Name === '보스 피해') {
@@ -587,7 +548,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
 
   // 4. 각인 효과
   const allEngravings = [...(engravings || []), ...(arkPassiveEngravings || [])];
-  allEngravings.forEach((e: EngravingEffect) => {
+  allEngravings.forEach((e: any) => {
     const name = e.Name || "";
     const desc = e.Description || "";
 
@@ -614,38 +575,60 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
       }
     }
 
-    const unifiedItem: UnifiedEquipment = {
-      type: '각인',
-      name: name,
-      stat: 0,
-      weapon_atk: 0,
-      atk: 0,
-      damage: 0,
-      additional_damage: 0,
-      additional_damage_real: 0,
-      atk_percent: 0,
-      atk_percent_real: 0,
-      base_atk_percent: 0,
-      weapon_atk_percent: 0,
-      critical_percent: 0,
-      critical_damage: 0,
-      critical_hit_damage: 0,
-      cooldown: 0,
-      evolution_damage: 0
-    };
+    const unifiedItem = createUnifiedItem('각인', name);
 
-    extractStats(desc, unifiedItem);
+    // engraving_table.json 참조 (각인 > Level > AbilityStoneLevel)
+    // 아드레날린, 예리한 둔기, 정밀 단도는 테이블 값 대신 직접 스탯 파싱
+    const EXCLUDED_FROM_TABLE = ["아드레날린", "예리한 둔기", "정밀 단도"];
+    let tableValue: number | undefined;
+    if (e.Level !== undefined && !EXCLUDED_FROM_TABLE.includes(name)) {
+      const levelKey = String(e.Level);
+      const stoneKey = String(e.AbilityStoneLevel || 0);
+      // @ts-ignore
+      tableValue = engravingTable[name]?.[levelKey]?.[stoneKey];
+    }
 
-    if (name.includes("아드레날린")) {
-        const atkMatch = desc.match(/공격력이\s*(?:<[^>]+>)*(\d*\.\d+|\d+)%/i);
-        if (atkMatch) {
-            const stackVal = parseFloat(atkMatch[1]);
-            unifiedItem.atk_percent_real = stackVal * 6;
+    if (typeof tableValue === 'number') {
+      unifiedItem.engraving_damage = tableValue;
+    } else {
+      if (!EXCLUDED_FROM_TABLE.includes(name)) {
+        extractStats(desc, unifiedItem);
+      }
+
+      if (unifiedItem.damage > 0) {
+        unifiedItem.engraving_damage = unifiedItem.damage;
+        unifiedItem.damage = 0;
+      }
+
+      if (name.includes("아드레날린")) {
+          const atkMatch = desc.match(/공격력이\s*(?:<[^>]+>)*(\d*\.\d+|\d+)%/i);
+          if (atkMatch) {
+              const stackVal = parseFloat(atkMatch[1]);
+              unifiedItem.atk_percent_real = stackVal * 6;
+          }
+          const critMatch = desc.match(/치명타 적중률이\s*(?:추가로)?\s*(?:<[^>]+>)*\s*(\d*\.\d+|\d+)%/i);
+          if (critMatch) {
+               unifiedItem.critical_percent = parseFloat(critMatch[1]);
+          }
+      }
+
+      if (name.includes("예리한 둔기")) {
+        const match = desc.match(/치명타 피해량이\s*(?:<[^>]+>)*(\d*\.\d+|\d+)%/i);
+        if (match) {
+          unifiedItem.critical_damage = parseFloat(match[1]);
         }
-        const critMatch = desc.match(/치명타 적중률이\s*(?:추가로)?\s*(?:<[^>]+>)*\s*(\d*\.\d+|\d+)%/i);
+      }
+
+      if (name.includes("정밀 단도")) {
+        const critMatch = desc.match(/치명타 적중률이\s*(?:<[^>]+>)*(\d*\.\d+|\d+)%/i);
         if (critMatch) {
-             unifiedItem.critical_percent = parseFloat(critMatch[1]);
+          unifiedItem.critical_percent = parseFloat(critMatch[1]);
         }
+        const critDmgMatch = desc.match(/치명타 피해량이\s*(?:<[^>]+>)*(\d*\.\d+|\d+)%/i);
+        if (critDmgMatch) {
+          unifiedItem.critical_damage = -parseFloat(critDmgMatch[1]);
+        }
+      }
     }
 
     const hasStats = Object.entries(unifiedItem).some(([k, v]) => k !== 'type' && k !== 'name' && typeof v === 'number' && v !== 0);
@@ -671,25 +654,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
         console.error("Failed to parse gem tooltip", e);
     }
 
-    const unifiedItem: UnifiedEquipment = {
-      type: '보석',
-      name: gem.Name.replace(/<[^>]*>/g, ''),
-      stat: 0,
-      weapon_atk: 0,
-      atk: 0,
-      damage: 0,
-      additional_damage: 0,
-      additional_damage_real: 0,
-      atk_percent: 0,
-      atk_percent_real: 0,
-      base_atk_percent: 0,
-      weapon_atk_percent: 0,
-      critical_percent: 0,
-      critical_damage: 0,
-      critical_hit_damage: 0,
-      cooldown: 0,
-      evolution_damage: 0
-    };
+    const unifiedItem = createUnifiedItem('보석', gem.Name.replace(/<[^>]*>/g, ''));
 
     const parseGemTooltip = (text: string) => {
         extractStats(text, unifiedItem);
@@ -734,7 +699,7 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
   }).reduce((a, b) => a + b.value, 0);
 
   const critStat = profile.Stats.find(s => s.Type === '치명')?.Value || '0';
-  const critFromStat = (parseInt(critStat, 10) * 0.035776614310645724);
+  const critFromStat = (parseInt(critStat.replace(/,/g, ''), 10) * 0.03579099);
   if (critFromStat > 0) {
     breakdown.critRate.push({ name: '기본 치명 스탯', value: critFromStat });
   }
@@ -761,9 +726,16 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
 
   const unifiedEquipmentTotals = unifiedEquipment.reduce((acc, curr) => ({
     stat: acc.stat + curr.stat,
+    crit: acc.crit + curr.crit,
+    specialization: acc.specialization + curr.specialization,
+    swiftness: acc.swiftness + curr.swiftness,
+    domination: acc.domination + curr.domination,
+    endurance: acc.endurance + curr.endurance,
+    expertise: acc.expertise + curr.expertise,
     weapon_atk: acc.weapon_atk + curr.weapon_atk,
     atk: acc.atk + curr.atk,
     damage: curr.type === '보석' ? acc.damage : ((1 + acc.damage / 100) * (1 + curr.damage / 100) - 1) * 100,
+    engraving_damage: acc.engraving_damage + curr.engraving_damage,
     additional_damage: acc.additional_damage + curr.additional_damage,
     additional_damage_real: acc.additional_damage_real + curr.additional_damage_real,
     atk_percent: acc.atk_percent + curr.atk_percent,
@@ -772,10 +744,10 @@ export function parseCharacterData(data: RawArmoryData): ParsedCharacterData {
     weapon_atk_percent: acc.weapon_atk_percent + curr.weapon_atk_percent,
     critical_percent: acc.critical_percent + curr.critical_percent,
     critical_damage: acc.critical_damage + curr.critical_damage,
-    critical_hit_damage: acc.critical_hit_damage + curr.critical_hit_damage,
+    critical_hit_damage: ((1 + acc.critical_hit_damage / 100) * (1 + curr.critical_hit_damage / 100) - 1) * 100,
     cooldown: curr.type === '보석' ? acc.cooldown : acc.cooldown + curr.cooldown,
     evolution_damage: acc.evolution_damage + curr.evolution_damage,
-  }), { stat: 0, weapon_atk: 0, atk: 0, damage: 0, additional_damage: 0, additional_damage_real: 0, atk_percent: 0, atk_percent_real: 0, base_atk_percent: 0, weapon_atk_percent: 0, critical_percent: 0, critical_damage: 200, critical_hit_damage: 0, cooldown: 0, evolution_damage: 0 });
+  }), { stat: 0, crit: 0, specialization: 0, swiftness: 0, domination: 0, endurance: 0, expertise: 0, weapon_atk: 0, atk: 0, damage: 0, engraving_damage: 0, additional_damage: 0, additional_damage_real: 0, atk_percent: 0, atk_percent_real: 0, base_atk_percent: 0, weapon_atk_percent: 0, critical_percent: 0, critical_damage: 0, critical_hit_damage: 0, cooldown: 0, evolution_damage: 0 });
 
   console.log('Unified Equipment Totals:', unifiedEquipmentTotals);
 

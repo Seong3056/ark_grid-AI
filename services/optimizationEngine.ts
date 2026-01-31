@@ -1,42 +1,7 @@
 
 import { ArkGridGem, MultiOptimizationResult, CoreGrade, CoreType, SingleOptimization, PlayerRole, OptimizationMode } from "../types";
-import arkGridCoreData from "../meta/arkgrid_core.json";
-
-const DEALER_SCALING_TABLE: Record<string, Record<number, number>> = arkGridCoreData.dealer as unknown as Record<string, Record<number, number>>;
-const SUPPORT_SCALING_TABLE: Record<string, Record<number, number>> = arkGridCoreData.support as unknown as Record<string, Record<number, number>>;
-
-const WILL_LIMITS: Record<CoreGrade, number> = {
-  'Hero': 9,
-  'Legend': 12,
-  'Relic': 15,
-  'Ancient': 17
-};
-
-const POINT_LIMITS: Record<CoreGrade, number> = {
-  'Hero': 10,
-  'Legend': 14,
-  'Relic': 20,
-  'Ancient': 20
-};
-
-const TARGET_POINTS: Record<CoreGrade, number> = {
-  'Hero': 10,
-  'Legend': 14,
-  'Relic': 17,
-  'Ancient': 17
-};
-
-const GEM_COEFFICIENTS: Record<string, number> = {
-  '공격력': 0.00036666,
-  '추가 피해': 0.000807692307692308,
-  '보스 피해': 0.00083334,
-  '낙인력': 0.0005,
-  '아군 공격 강화': 0.13,
-  '아군 피해 강화': 0.0525
-};
-
-const DEALER_EFFECTS = ['공격력', '보스 피해', '추가 피해'];
-const SUPPORT_EFFECTS = ['낙인력', '아군 공격 강화', '아군 피해 강화'];
+import { DEALER_SCALING_TABLE, SUPPORT_SCALING_TABLE } from "./coreData";
+import { WILL_LIMITS, POINT_LIMITS, TARGET_POINTS, GEM_COEFFICIENTS, DEALER_EFFECTS, SUPPORT_EFFECTS } from "../constants";
 
 function getScalingGain(type: CoreType, totalPoints: number, role: PlayerRole): number {
 

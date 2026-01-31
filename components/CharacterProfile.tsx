@@ -1,8 +1,8 @@
 
 import React from 'react';
 import { User, Search, RefreshCcw, Fingerprint, Sword, Users, TrendingUp } from 'lucide-react';
-import { PlayerRole, CharStats } from '../types';
-import StatWithTooltip from './StatWithTooltip';
+import { PlayerRole, CharStats, UnifiedEquipment } from '../types';
+import UnifiedEquipmentList from '../services/UnifiedEquipmentList';
 
 interface CharacterProfileProps {
   nickname: string;
@@ -12,6 +12,7 @@ interface CharacterProfileProps {
   charStats: (CharStats & { breakdown: CharStats['breakdown'] }) | null; // Updated line
   loading: boolean;
   onSearch: () => void;
+  unifiedEquipment: UnifiedEquipment[];
 }
 
 const CharacterProfile: React.FC<CharacterProfileProps> = ({ 
@@ -21,7 +22,8 @@ const CharacterProfile: React.FC<CharacterProfileProps> = ({
   setRole, 
   charStats, 
   loading, 
-  onSearch 
+  onSearch,
+  unifiedEquipment
 }) => {
   return (
     <div className="space-y-6">
@@ -65,70 +67,19 @@ const CharacterProfile: React.FC<CharacterProfileProps> = ({
           </button>
         </div>
 
-        <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800/50 min-h-[100px] flex flex-col justify-center">
+        <div className="p-5 bg-slate-950/80 rounded-2xl border border-slate-800/50 min-h-[300px] flex flex-col">
           {charStats ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <div className="flex justify-between items-center col-span-2">
-              <span className="font-bold text-slate-400">전투력 :</span>
-              <span className="font-black text-white">{charStats.combatPower}</span>
+            <div className="flex flex-col h-full gap-4">
+              <div className="flex justify-between items-center shrink-0">
+                <span className="font-bold text-slate-400">전투력</span>
+                <span className="font-black text-white text-lg">{charStats.combatPower}</span>
+              </div>
+              <div className="flex-1 min-h-0">
+                <UnifiedEquipmentList data={unifiedEquipment} />
+              </div>
             </div>
-            <StatWithTooltip 
-              label="공격력" 
-              value={charStats.attackPower} 
-              sources={charStats.breakdown.attackPower}
-              colorClass="text-red-400"
-            />
-            <StatWithTooltip 
-              label="무기 공격력" 
-              value={charStats.weaponAtkPower} 
-              sources={charStats.breakdown.weaponAtkPower}
-              colorClass="text-red-400"
-            />
-            <StatWithTooltip 
-              label="추가 피해" 
-              value={charStats.additionalDamage} 
-              sources={charStats.breakdown.additionalDamage}
-              colorClass="text-red-400"
-            />
-            <StatWithTooltip
-              label="피해"
-              value={charStats.damage}
-              sources={charStats.breakdown.damage}
-              colorClass="text-red-400"
-            />
-            <StatWithTooltip 
-              label="치명타 적중률" 
-              value={charStats.critRate} 
-              sources={charStats.breakdown.critRate}
-              colorClass="text-sky-400"
-            />
-            <StatWithTooltip 
-              label="치명타 피해" 
-              value={charStats.critDamage} 
-              sources={charStats.breakdown.critDamage}
-              colorClass="text-sky-400"
-            />
-            <StatWithTooltip 
-              label="낙인력" 
-              value={charStats.branding} 
-              sources={charStats.breakdown.branding} 
-              colorClass="text-amber-400"
-            />
-            <StatWithTooltip 
-              label="아군 공격 강화" 
-              value={charStats.atkBuff} 
-              sources={charStats.breakdown.atkBuff}
-              colorClass="text-emerald-400"
-            />
-            <StatWithTooltip 
-              label="아군 피해 강화" 
-              value={charStats.dmgBuff} 
-              sources={charStats.breakdown.dmgBuff}
-              colorClass="text-emerald-400" 
-            />
-          </div>
           ) : (
-            <div className="text-center py-2 flex flex-col items-center gap-2 opacity-30">
+            <div className="flex-1 flex flex-col items-center justify-center gap-2 opacity-30">
               <TrendingUp className="w-6 h-6 text-slate-600" />
               <p className="text-[10px] font-bold text-slate-500 uppercase">캐릭터 검색이 필요합니다</p>
             </div>
